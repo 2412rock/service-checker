@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Net.Mail;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ namespace HttpChecker
         private static Timer _timer;
         private static readonly HttpClient _httpClient = new HttpClient();
         private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private static string baseUrl = "https://overflowapp.xyz:4200";
 
 
         static async Task Main(string[] args)
@@ -26,17 +28,46 @@ namespace HttpChecker
 
         private static async void CheckServiceStatus(object state)
         {
-            string url = "https://overflowapp.xyz:4200/api/health"; // URL to check
+            string healthUrl = $"{baseUrl}/api/health"; // URL to check
             try
             {
-                var response = await _httpClient.GetAsync(url);
+                var response = await _httpClient.GetAsync(healthUrl);
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 {
-                    SendEmail("Service Down", $"The service at {url} is down. Status code: {(int)response.StatusCode}");
+                    SendEmail("Overflow Server Down", $"The service at {healthUrl} is down. Status code: {(int)response.StatusCode}");
                 }
-                else
+                else if (response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                   //Console.WriteLine($"[{DateTime.Now}] Service is running fine.");
+                    // Check the queue size
+                    string queueSizeUrl = $"{baseUrl}/api/getQueueSize"; // URL to check
+                    var queueSizeResponse = await _httpClient.GetAsync(queueSizeUrl);
+                    if (queueSizeResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        // Read the response content
+                        var queueSizeContent = await queueSizeResponse.Content.ReadAsStringAsync();
+
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true // Ignore case when matching properties
+                        };
+                        // Deserialize the JSON response
+                        var queueSizeResponseObject = JsonSerializer.Deserialize<ApiResponse<int>>(queueSizeContent, options);
+
+                        // Check if the deserialization was successful and if the isSuccess is true
+                        if (queueSizeResponseObject != null && queueSizeResponseObject.IsSuccess)
+                        {
+                            int queueSize = queueSizeResponseObject.Data;
+
+                            if (queueSize == 0)
+                            {
+                                SendEmail("Overflow Queue Size Alert", $"The queue size is {queueSize}.");
+                            }
+                        }
+                        else
+                        {
+                            SendEmail("Overflow Queue Size Error", $"The response indicates failure or is not in the expected format.");
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -80,4 +111,12 @@ namespace HttpChecker
             }
         }
     }
- }
+
+    public class ApiResponse<T>
+    {
+        public T Data { get; set; }
+        public bool IsSuccess { get; set; }
+        public bool IsException { get; set; }
+        public string? ExceptionMessage { get; set; }
+    }
+}
