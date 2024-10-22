@@ -11,15 +11,17 @@ namespace HttpChecker
     {
         private static Timer _timer;
         private static readonly HttpClient _httpClient = new HttpClient();
+        private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+
 
         static async Task Main(string[] args)
         {
             // Set the timer to run every 1 minute (60000 milliseconds)
             _timer = new Timer(CheckServiceStatus, null, 0, 60000);
 
-            // Prevent the console application from exiting
             Console.WriteLine("Monitoring started. Press Enter to stop...");
-            Console.ReadLine();
+            // Keep the program running indefinitely
+            await Task.Delay(Timeout.Infinite, _cancellationTokenSource.Token);
         }
 
         private static async void CheckServiceStatus(object state)
@@ -34,7 +36,7 @@ namespace HttpChecker
                 }
                 else
                 {
-                   // Console.WriteLine($"[{DateTime.Now}] Service is running fine.");
+                   //Console.WriteLine($"[{DateTime.Now}] Service is running fine.");
                 }
             }
             catch (Exception ex)
