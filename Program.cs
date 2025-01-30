@@ -70,7 +70,7 @@ namespace HttpChecker
                 }
                 else
                 {
-                    SendEmail("Ffhub backend Down", $"Ffhub backend is down. Status code: {(int)ffhubFrontendReponse.StatusCode}");
+                    SendEmail("Ffhub backend Down", $"Ffhub backend is down. Status code: {(int)ffhubBackendReponse.StatusCode}");
                 }
             }
             catch(Exception ex)
