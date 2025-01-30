@@ -13,45 +13,106 @@ namespace HttpChecker
         private static Timer _timer;
         private static readonly HttpClient _httpClient = new HttpClient();
         private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
-        private static string baseUrl = "https://overflowapp.xyz:4200";
+        private static string baseUrlOverflow = "https://overflowapp.xyz:4200";
+        private static string baseUrlFfhubFrontend = "https://ffhub.co";
+        private static string baseUrlFfhubBackend = "https://ffhub.co:4500";
 
 
         static async Task Main(string[] args)
         {
             // Set the timer to run every 1 minute (60000 milliseconds)
-            _timer = new Timer(CheckServiceStatus, null, 0, 60000);
+            _timer = new Timer(CheckOverflowStatus, null, 0, 6000);
+            _timer = new Timer(CheckFfhubStatus, null, 0, 6000);
 
             Console.WriteLine("Monitoring started. Press Enter to stop...");
             // Keep the program running indefinitely
             await Task.Delay(Timeout.Infinite, _cancellationTokenSource.Token);
         }
 
-        private static async void CheckServiceStatus(object state)
+        private static async void CheckFfhubStatus(object state) 
         {
-            string healthUrl = $"{baseUrl}/api/health"; // URL to check
+            string healthUrl = $"{baseUrlFfhubBackend}/api/health";
             try
             {
-                var response = await _httpClient.GetAsync(healthUrl);
-                if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                var ffhubFrontendReponse = await _httpClient.GetAsync(baseUrlFfhubFrontend);
+                if (ffhubFrontendReponse.StatusCode != System.Net.HttpStatusCode.OK)
                 {
-                    SendEmail("Overflow Server Down", $"The service at {healthUrl} is down. Status code: {(int)response.StatusCode}");
+                    SendEmail("Ffhub frontend Down", $"Ffhub frontend is down. Status code: {(int)ffhubFrontendReponse.StatusCode}");
                 }
-                else if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                var ffhubBackendReponse = await _httpClient.GetAsync(healthUrl);
+                if (ffhubBackendReponse.StatusCode == System.Net.HttpStatusCode.OK) 
                 {
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true // Ignore case when matching properties
+                    };
+
+                    var heathcheckReponseContent = await ffhubBackendReponse.Content.ReadAsStringAsync();
+                    var healthCheckMaybe = JsonSerializer.Deserialize<Maybe<string>>(heathcheckReponseContent, options);
                     // Check the queue size
-                    string queueSizeUrl = $"{baseUrl}/api/getQueueSize"; // URL to check
+                    if (healthCheckMaybe == null || healthCheckMaybe.IsException)
+                    {
+                        if (healthCheckMaybe != null)
+                        {
+                            SendEmail("Ffhub Backend returned exception", $"{healthCheckMaybe.ExceptionMessage}");
+                        }
+                        else
+                        {
+                            SendEmail("Ffhub Backend returned no maybe", $"Ffhub Backend returned no maybe");
+                        }
+
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                SendEmail("Exception occured checking ffhub service status", $"Exception: {ex.Message}");
+            }
+        }
+
+        private static async void CheckOverflowStatus(object state)
+        {
+            string healthUrl = $"{baseUrlOverflow}/api/health"; // URL to check
+            try
+            {
+                var healthCheckReponse = await _httpClient.GetAsync(healthUrl);
+                if (healthCheckReponse.StatusCode != System.Net.HttpStatusCode.OK)
+                {
+                    SendEmail("Overflow Server Down", $"The service at {healthUrl} is down. Status code: {(int)healthCheckReponse.StatusCode}");
+                }
+                else if (healthCheckReponse.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true // Ignore case when matching properties
+                    };
+
+                    var heathcheckReponseContent = await healthCheckReponse.Content.ReadAsStringAsync();
+                    var healthCheckMaybe = JsonSerializer.Deserialize<Maybe<string>>(heathcheckReponseContent, options);
+                    // Check the queue size
+                    if (healthCheckMaybe == null ||  healthCheckMaybe.IsException)
+                    {
+                        if(healthCheckMaybe != null)
+                        {
+                            SendEmail("Overflow Server returned exception", $"Overflow server returned exception {healthCheckMaybe.ExceptionMessage}");
+                        }
+                        else
+                        {
+                            SendEmail("Overflow Server returned no maybe", $"Overflow Server returned no maybe");
+                        }
+                        
+                    }
+                    string queueSizeUrl = $"{baseUrlOverflow}/api/getQueueSize"; // URL to check
                     var queueSizeResponse = await _httpClient.GetAsync(queueSizeUrl);
                     if (queueSizeResponse.StatusCode == System.Net.HttpStatusCode.OK)
                     {
                         // Read the response content
                         var queueSizeContent = await queueSizeResponse.Content.ReadAsStringAsync();
 
-                        var options = new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true // Ignore case when matching properties
-                        };
+                        
                         // Deserialize the JSON response
-                        var queueSizeResponseObject = JsonSerializer.Deserialize<ApiResponse<int>>(queueSizeContent, options);
+                        var queueSizeResponseObject = JsonSerializer.Deserialize<Maybe<int>>(queueSizeContent, options);
 
                         // Check if the deserialization was successful and if the isSuccess is true
                         if (queueSizeResponseObject != null && queueSizeResponseObject.IsSuccess)
@@ -112,7 +173,8 @@ namespace HttpChecker
         }
     }
 
-    public class ApiResponse<T>
+
+    public class Maybe<T>
     {
         public T Data { get; set; }
         public bool IsSuccess { get; set; }
