@@ -1,1 +1,1 @@
-docker run -e EMAIL_PASSWD=MUIE --name service-checker service-checker
+docker run -d -e EMAIL_PASSWD=MUIE --name service-checker service-checker
