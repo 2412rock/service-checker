@@ -22,8 +22,8 @@ namespace HttpChecker
         static async Task Main(string[] args)
         {
             // Set the timer to run every 1 minute (60000 milliseconds)
-            var _timer = new Timer(async _ => await CheckOverflowStatus(null), null, 0, 6000);
-            var _timer2 = new Timer(async _ => await CheckFfhubStatus(null), null, 0, 6000);
+            var _timer = new Timer(async _ => await CheckOverflowStatus(null), null, 0, 60000);
+            var _timer2 = new Timer(async _ => await CheckFfhubStatus(null), null, 0, 60000);
             string senderPassword = Environment.GetEnvironmentVariable("EMAIL_PASSWD");
             Console.WriteLine($"Monitoring started. Press Enter to stop... {senderPassword}");
             if(senderPassword == null)
