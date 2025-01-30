@@ -23,8 +23,8 @@ namespace HttpChecker
             // Set the timer to run every 1 minute (60000 milliseconds)
             _timer = new Timer(CheckOverflowStatus, null, 0, 6000);
             _timer = new Timer(CheckFfhubStatus, null, 0, 6000);
-
-            Console.WriteLine("Monitoring started. Press Enter to stop...");
+            string senderPassword = Environment.GetEnvironmentVariable("EMAIL_PASSWD");
+            Console.WriteLine($"Monitoring started. Press Enter to stop... {senderPassword}");
             // Keep the program running indefinitely
             await Task.Delay(Timeout.Infinite, _cancellationTokenSource.Token);
         }
