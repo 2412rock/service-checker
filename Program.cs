@@ -25,6 +25,10 @@ namespace HttpChecker
             _timer = new Timer(CheckFfhubStatus, null, 0, 6000);
             string senderPassword = Environment.GetEnvironmentVariable("EMAIL_PASSWD");
             Console.WriteLine($"Monitoring started. Press Enter to stop... {senderPassword}");
+            if(senderPassword == null)
+            {
+                Console.WriteLine("No email password");
+            }
             // Keep the program running indefinitely
             await Task.Delay(Timeout.Infinite, _cancellationTokenSource.Token);
         }
