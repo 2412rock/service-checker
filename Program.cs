@@ -5,12 +5,13 @@ using System.Net.Mail;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
+using Timer = System.Threading.Timer;
 
 namespace HttpChecker
 {
     class Program
     {
-        private static Timer _timer;
         private static readonly HttpClient _httpClient = new HttpClient();
         private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private static string baseUrlOverflow = "https://overflowapp.xyz:4200";
@@ -21,8 +22,8 @@ namespace HttpChecker
         static async Task Main(string[] args)
         {
             // Set the timer to run every 1 minute (60000 milliseconds)
-            _timer = new Timer(CheckOverflowStatus, null, 0, 6000);
-            _timer = new Timer(CheckFfhubStatus, null, 0, 6000);
+            var _timer = new Timer(async _ => await CheckOverflowStatus(null), null, 0, 6000);
+            var _timer2 = new Timer(async _ => await CheckFfhubStatus(null), null, 0, 6000);
             string senderPassword = Environment.GetEnvironmentVariable("EMAIL_PASSWD");
             Console.WriteLine($"Monitoring started. Press Enter to stop... {senderPassword}");
             if(senderPassword == null)
@@ -33,7 +34,7 @@ namespace HttpChecker
             await Task.Delay(Timeout.Infinite, _cancellationTokenSource.Token);
         }
 
-        private static async void CheckFfhubStatus(object state) 
+        private static async Task CheckFfhubStatus(object state) 
         {
             string healthUrl = $"{baseUrlFfhubBackend}/api/health";
             try
@@ -79,7 +80,7 @@ namespace HttpChecker
             }
         }
 
-        private static async void CheckOverflowStatus(object state)
+        private static async Task CheckOverflowStatus(object state)
         {
             string healthUrl = $"{baseUrlOverflow}/api/health"; // URL to check
             try
