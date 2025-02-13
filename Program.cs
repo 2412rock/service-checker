@@ -23,7 +23,7 @@ namespace HttpChecker
         {
             // Set the timer to run every 1 minute (60000 milliseconds)
             var _timer = new Timer(async _ => await CheckOverflowStatus(null), null, 0, 60000);
-            //var _timer2 = new Timer(async _ => await CheckFfhubStatus(null), null, 0, 60000);
+            var _timer2 = new Timer(async _ => await CheckFfhubStatus(null), null, 0, 60000);
             string senderPassword = Environment.GetEnvironmentVariable("EMAIL_PASSWD");
             Console.WriteLine($"Monitoring started. Press Enter to stop... {senderPassword}");
             if(senderPassword == null)
@@ -40,11 +40,13 @@ namespace HttpChecker
             try
             {
                 var ffhubFrontendReponse = await _httpClient.GetAsync(baseUrlFfhubFrontend);
+                Console.WriteLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Got frontend response from ffhub {ffhubFrontendReponse.StatusCode}");
                 if (ffhubFrontendReponse.StatusCode != System.Net.HttpStatusCode.OK)
                 {
                     SendEmail("Ffhub frontend Down", $"Ffhub frontend is down. Status code: {(int)ffhubFrontendReponse.StatusCode}");
                 }
                 var ffhubBackendReponse = await _httpClient.GetAsync(healthUrl);
+                Console.WriteLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Got backend response from ffhub {ffhubBackendReponse.StatusCode}");
                 if (ffhubBackendReponse.StatusCode == System.Net.HttpStatusCode.OK) 
                 {
                     var options = new JsonSerializerOptions
@@ -86,7 +88,7 @@ namespace HttpChecker
             try
             {
                 var healthCheckReponse = await _httpClient.GetAsync(healthUrl);
-                Console.WriteLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Got healthcheck response {healthCheckReponse.StatusCode}");
+                Console.WriteLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Got healthcheck response from overflow {healthCheckReponse.StatusCode}");
 
                 if (healthCheckReponse.StatusCode != System.Net.HttpStatusCode.OK)
                 {
