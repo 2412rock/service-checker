@@ -86,6 +86,7 @@ namespace HttpChecker
             try
             {
                 var healthCheckReponse = await _httpClient.GetAsync(healthUrl);
+                Console.WriteLine($"Got healthcheck reposne {healthCheckReponse.StatusCode}");
                 if (healthCheckReponse.StatusCode != System.Net.HttpStatusCode.OK)
                 {
                     SendEmail("Overflow Server Down", $"The service at {healthUrl} is down. Status code: {(int)healthCheckReponse.StatusCode}");
